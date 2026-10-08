@@ -3,6 +3,7 @@
 
 using Moq;
 using Moryx.AbstractionLayer.Activities;
+using Moryx.AbstractionLayer.Drivers;
 using Moryx.AbstractionLayer.Drivers.Message;
 using Moryx.AbstractionLayer.Processes;
 using Moryx.ControlSystem.Activities;
@@ -11,7 +12,10 @@ using Moryx.Demo.Activities;
 using Moryx.Resources.Demo;
 using Moryx.Resources.Demo.Messages;
 using Moryx.VisualInstructions;
+using Moryx.Workplans;
 using NUnit.Framework;
+using NUnit.Framework.Internal;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Moryx.Demo.Tests;
 
@@ -78,29 +82,45 @@ public class AssemblyCellTests
         Assert.That(_cell.CellState, Is.EqualTo("Running"));
     }
 
-    [Test]
-    public void StartActivity_WithAssemblyActivity_CallsDriver()
+[Test]
+public void StartActivity_WithAssemblyActivity_CallsDriver()
     {
+        // Arrange
         var activity = new AssemblyActivity
         {
             Id = 123,
             Parameters = new AssemblyParameters()
         };
-        var activityStart = CreateActivityStart(activity, ActivityClassification.Production);
+
+        var activityStart = CreateActivityStart(
+            activity,
+            ActivityClassification.Production);
 
         _cell.ManualMode = false;
 
+        // Act
         _cell.StartActivity(activityStart);
 
+        // Assert
         _driver.Verify(
-            driver => driver.Send(It.Is<AssembleProductMessage>(message => message.ActivityId == activity.Id)),
+            driver => driver.Send(
+                It.Is<AssembleProductMessage>(
+                    message => message.ActivityId == activity.Id)),
             Times.Once);
+
         _instructor.Verify(
-            instructor => instructor.Execute(It.IsAny<ActiveInstruction>(), It.IsAny<Action<ActiveInstructionResponse>>()),
+            instructor => instructor.Execute(
+                It.IsAny<ActiveInstruction>(),
+                It.IsAny<Action<ActiveInstructionResponse>>()),
             Times.Never);
-        Assert.Fail();
-        Assert.That(_cell.CurrentSession, Is.SameAs(activityStart));
-        Assert.That(_cell.CellState, Is.EqualTo("Running"));
+
+        Assert.That(
+            _cell.CurrentSession,
+            Is.SameAs(activityStart));
+
+        Assert.That(
+            _cell.CellState,
+            Is.EqualTo("Running"));
     }
 
     [Test]
